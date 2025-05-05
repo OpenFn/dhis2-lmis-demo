@@ -1,0 +1,210 @@
+Device: Q-tag Fridge-tag 2
+Vers: 0.5
+Fw Vers: 4.0p1o
+Sensor: 1
+Conf:
+ Serial: 160400343951
+ PCB: BG0245101004
+ CID: 62000007
+ Lot: 1792_20_08
+ Zone: 0.00
+ Measurement delay: 10
+ Moving Avrg: 1
+ User Alarm Config: 0
+ User Clock Config: 1
+ Alarm Indication: 0
+ Temp unit: C
+ Alarm:
+  0:
+   T AL: -0.5, t AL: 60
+  1:
+   T AL: +8.0, t AL: 600
+ Int Sensor:
+  Timeout: 1, Offset: +0.0
+ Report history length: 60
+ Det Report: 19
+ Use ext devices: 0
+ Test Res: 1, Test TS: 2025-03-05 10:17
+Hist:
+ TS Actv: 2025-04-11 21:26
+ TS Report Creation: 2025-04-23 15:07
+ 1:
+  Date: 2025-04-23
+  Min T: +6.1, TS Min T: 14:47
+  Max T: +11.1, TS Max T: 15:06
+  Avrg T: +6.9
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 7
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 0
+ 2:
+  Date: 2025-04-22
+  Min T: +6.2, TS Min T: 10:12
+  Max T: +7.8, TS Max T: 00:32
+  Avrg T: +6.9
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 0
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 0
+ 3:
+  Date: 2025-04-21
+  Min T: +4.4, TS Min T: 16:48
+  Max T: +12.0, TS Max T: 17:21
+  Avrg T: +6.3
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 19
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 0
+ 4:
+  Date: 2025-04-20
+  Min T: +2.0, TS Min T: 20:32
+  Max T: +13.4, TS Max T: 00:00
+  Avrg T: +10.8
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 1011, TS A: 00:00, C A: 0
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 0
+ 5:
+  Date: 2025-04-19
+  Min T: +13.4, TS Min T: 13:24
+  Max T: +14.1, TS Max T: 00:00
+  Avrg T: +13.5
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 1440, TS A: 00:00, C A: 0
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 0
+ 6:
+  Date: 2025-04-18
+  Min T: +14.1, TS Min T: 21:24
+  Max T: +14.4, TS Max T: 00:00
+  Avrg T: +14.3
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 1440, TS A: 00:00, C A: 0
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 0
+ 7:
+  Date: 2025-04-17
+  Min T: +14.2, TS Min T: 00:01
+  Max T: +14.4, TS Max T: 21:18
+  Avrg T: +14.2
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 1440, TS A: 00:00, C A: 0
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 0
+ 8:
+  Date: 2025-04-16
+  Min T: +14.1, TS Min T: 08:09
+  Max T: +14.3, TS Max T: 00:00
+  Avrg T: +14.1
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 1440, TS A: 00:00, C A: 0
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 0
+ 9:
+  Date: 2025-04-15
+  Min T: +14.3, TS Min T: 15:36
+  Max T: +14.6, TS Max T: 00:00
+  Avrg T: +14.4
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 1440, TS A: 00:00, C A: 0
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 0
+ 10:
+  Date: 2025-04-14
+  Min T: +14.6, TS Min T: 19:59
+  Max T: +15.5, TS Max T: 00:39
+  Avrg T: +14.9
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 1440, TS A: 06:36, C A: 0
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 0
+ 11:
+  Date: 2025-04-13
+  Min T: +5.1, TS Min T: 05:20
+  Max T: +18.1, TS Max T: 00:00
+  Avrg T: +7.4
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 265
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 0
+ 12:
+  Date: 2025-04-12
+  Min T: +5.1, TS Min T: 02:24
+  Max T: +19.8, TS Max T: 22:57
+  Avrg T: +8.8
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 500
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 18
+  Checked:
+   TS PM: 20:56
+ 13:
+  Date: 2025-04-11
+  Min T: +5.8, TS Min T: 23:38
+  Max T: +19.1, TS Max T: 21:38
+  Avrg T: +11.8
+  Alarm:
+   0:
+    t Acc: 0
+   1:
+    t Acc: 103
+  Int Sensor timeout:
+   t AccST: 0
+  Events: 0
+Cert:
+ Vers: 1.0
+ Lot: 1792_20_08
+ Issuer: Berlinger & Co. AG
+ Valid from: 2020-08-21 07:39
+ Owner: Berlinger & Co. AG
+ Public Key: d73cd26b379bd0a250d98498e15c739ab53594e9768b247a0713637cba30e474b4fcc1aae45f30ec7cc878c102cf9648d775670d2f93b48726a0f21d3ca71074
+Sig Cert: 6eef7b154b51a1f4a4186e76b495d43dc25cedbaab8b18486895df5d773530795679b8aa3678e511e45e28cb894bcc051dd90d13f19f699c4f42b46c4ed5d621
+Sig: 0d6bb110cdb08101f1339ab4613c080c829e04aba2f9751703f046f886e3550d360cef375732ea13de7d018bc5599a5b570b26192bdefefdc4dd5e0fe7644171
