@@ -1,0 +1,138 @@
+{
+  "id": "45938236-e00d-468f-a623-0159d6ce1819",
+  "name": "dhis2-lmis-demo",
+  "description": "Demo project for DHIS2 LMIS and cold chain workflows\n",
+  "concurrency": 4,
+  "inserted_at": "2025-04-24T11:34:07Z",
+  "updated_at": "2025-06-04T18:51:47Z",
+  "scheduled_deletion": null,
+  "history_retention_period": 365,
+  "dataclip_retention_period": null,
+  "retention_policy": "retain_all",
+  "project_credentials": {
+    "rediet@openfn.org-LMIS-Sandbox": {
+      "id": "c355aed3-d389-48b8-8c81-14a56fa682f3",
+      "name": "LMIS Sandbox",
+      "owner": "rediet@openfn.org"
+    },
+    "hunter@openfn.org-LMIS-Sandbox---HTTP": {
+      "id": "d1ebc50a-aa66-42e8-88d8-08cfe534b5d1",
+      "name": "LMIS Sandbox - HTTP",
+      "owner": "hunter@openfn.org"
+    },
+    "hunter@openfn.org-GMail-Demo-Creds": {
+      "id": "4f78c5d0-fb6b-4d88-b1d0-840749d17f87",
+      "name": "GMail Demo Creds",
+      "owner": "hunter@openfn.org"
+    },
+    "hunter@openfn.org-Hunters-Gmail": {
+      "id": "bf2ccbbb-9c25-4edb-8cad-a649d1e4e041",
+      "name": "Hunters Gmail",
+      "owner": "hunter@openfn.org"
+    },
+    "rediet@openfn.org-Rediets-Gmail": {
+      "id": "204fb949-4c6f-4674-907c-c795de29ed86",
+      "name": "Rediets Gmail",
+      "owner": "rediet@openfn.org"
+    },
+    "rediet@openfn.org-Varo-FridgeTag-Gmail": {
+      "id": "f240961f-3645-4853-bca1-b86b0806854f",
+      "name": "Varo FridgeTag Gmail",
+      "owner": "rediet@openfn.org"
+    }
+  },
+  "allow_support_access": false,
+  "collections": {},
+  "requires_mfa": false,
+  "workflows": {
+    "Sync-Fridge-Tag-Data-to-DHIS2": {
+      "id": "7b30ef95-7cc6-4f4a-8083-923e85346016",
+      "name": "Sync Fridge Tag Data to DHIS2",
+      "inserted_at": "2025-06-04T20:18:09.941397Z",
+      "lock_version": 181,
+      "triggers": {
+        "cron": {
+          "enabled": false,
+          "id": "bb523d26-331a-4d1f-8690-2fac147a3533",
+          "type": "cron",
+          "cron_expression": "00 00 * * *"
+        }
+      },
+      "jobs": {
+        "Fetch-Data-from-Email": {
+          "id": "64c929d6-f86d-46ac-8cf7-a1af15e4be93",
+          "name": "Fetch Data from Email",
+          "body": "fn((state) => {\n  // Define constants\n  const QUERY = 'from:georgemcguire99@gmail.com';\n  const MAX_RESULTS = 1;\n  \n// Single step: Query for messages with all two attachment types at once\n  return getContentsFromMessages({\n    query: QUERY,\n    contents: [\n      { type: 'file', name: \"metadata\", file: /^(?!.*(?:DATA|SYNC)).*\\.json$/ },\n      { type: 'file', name: \"fridgeTag\", file: /\\.txt$/ }\n    ],\n    maxResults: MAX_RESULTS\n  })(state)\n  .then((resultState) => {\n    // Process results to find messages with all required attachments\n    // Filter only messages that have both required properties for the Varo adaptor\n    const varoReadyMessages = resultState.data\n      .filter(msg => msg?.metadata?.content && msg?.fridgeTag?.content)\n      .map(msg => {\n        // Return the exact structure expected by Varo adaptor\n        return {\n          metadata: {\n            content: msg.metadata.content,\n            filename: msg.metadata.filename\n          },\n          fridgeTag: {\n            content: msg.fridgeTag.content,\n            filename: msg.fridgeTag.filename\n          },\n          messageId: msg.messageId\n        };\n      });\n    \n    // Log the number of valid messages for Varo\n    console.log(`Found ${varoReadyMessages.length} messages ready for Varo processing`);\n    \n    // Set state.data to be the array of messages in Varo-compatible format\n    return { \n      ...resultState,\n      data: varoReadyMessages\n    };\n  });\n});\n",
+          "adaptor": "@openfn/language-gmail@1.1.4",
+          "project_credential_id": "f240961f-3645-4853-bca1-b86b0806854f"
+        },
+        "Varo": {
+          "id": "a8d85790-d79b-4579-888c-7d60512dc6d5",
+          "name": "Varo",
+          "body": "// Convert the formatted data to EMS format\nconvertToEms($.data);\n//Log the results for verification\nfn((state) => {\n  state.reports = state.data\n  console.log(`Successfully converted ${state.data.length} messages to EMS format`);\n  const { references, data, ...rest } = state;\n  return rest;\n});\n",
+          "adaptor": "@openfn/language-varo@1.0.2",
+          "project_credential_id": null
+        },
+        "Data-Transformation-and-Mapping": {
+          "id": "c6f31911-62a2-4d42-8b5d-efbd75acffaa",
+          "name": "Data Transformation and Mapping",
+          "body": "fn(state => {\n\n  const { data, reports } = state;\n  const { trackedEntityInstances } = data\n\n  const trackedEntityPayload = {\n    trackedEntities: [],\n    events: []\n  }\n  reports.forEach(report => {\n    let orgUnit = ''\n    const enrolledAt = new Date().toISOString();\n    const matches = trackedEntityInstances.filter(instance => {\n      const attrs = instance.enrollments?.[0]?.attributes || [];\n      orgUnit = instance.orgUnit\n      return attrs.some(attr => instance.trackedEntityType === \"R3gvyQLmyX8\" && attr.value === report.LSER);\n    });\n\n    const commonAttributes = [\n      { attribute: \"XHdkwj2Gzi8\", value: report.LSER },\n      { attribute: \"juBTPqs6hyQ\", value: report.AMOD },\n      { attribute: \"Dm1zMbsU05X\", value: report.AMFR }\n    ];\n\n    const minutesToHHMM = mins => {\n      if (mins == null || isNaN(mins)) return \"\";\n      // Cap at 23:59 if minutes >= 1440\n      if (mins >= 1440) return \"23:59\";\n      const h = Math.floor(mins / 60);\n      const m = Math.round(mins % 60);\n      return `${h.toString().padStart(2, \"0\")}:${m.toString().padStart(2, \"0\")}`;\n    };\n\n\n    const events = report.reports.map(subReport => {\n      const aggregates = subReport.aggregates?.[0] || {};\n      const alarmCondition = subReport.alarms?.[0]?.condition;\n      const alarmMinutes = subReport.alarms[0]?.conditionMinutes;\n\n      return {\n        program: \"EThvOOPdWdU\",\n        programStage: \"QfEdltht9gW\",\n        status: \"ACTIVE\",\n        enrolledAt: enrolledAt,\n        occurredAt: subReport.date,\n        dataValues: [\n          {\n            dataElement: \"ITjXBXe4LHp\",\n            value: String(aggregates.average || ''),\n          },\n          {\n            dataElement: \"lMGgg93GNCj\",\n            value: \n              (alarmCondition === \"HEAT\" && alarmMinutes > 600) ||\n              (alarmCondition === \"FREEZE\" && alarmMinutes > 60)\n                ? \"ALARM\"\n                : \"ok\"\n          },\n          {\n            dataElement: \"iMon5EnL5tT\",\n            value: String(aggregates.min || '')\n          },\n          {\n            dataElement: \"uKw4f9GjumZ\", \n            value: alarmCondition === 'HEAT' ? minutesToHHMM(alarmMinutes) : \"00:00\"\n          },\n          {\n            dataElement: \"ZkLhYyo0muJ\", \n            value: alarmCondition === 'FREEZE' ? minutesToHHMM(alarmMinutes) : \"00:00\"\n          },\n          {\n            dataElement: \"pXXv6fqYhhx\",\n            value: String(aggregates.max || ''),\n          },\n          {\n            dataElement: \"YBjvNW66Q78\",\n            value: subReport.alarms[0]?.condition,\n          }\n        ],\n      }\n    });\n\n    if (matches.length > 0) {\n      matches.forEach(match => {\n        trackedEntityPayload.trackedEntities.push({\n          orgUnit: match.orgUnit,\n          program: \"EThvOOPdWdU\",\n          programStage: \"QfEdltht9gW\",\n          trackedEntityType: \"R3gvyQLmyX8\",\n          attributes: commonAttributes,\n          trackedEntityInstance: match.trackedEntity,\n          trackedEntity: match.trackedEntity,\n        });\n\n      const entityEvents = events.map(event => {\n      const existingEvent = match.enrollments[0].events\n        .find(e =>\n          e.occurredAt && event.occurredAt &&\n          new Date(e.occurredAt).toISOString().slice(0,10) ===\n          new Date(event.occurredAt).toISOString().slice(0,10)\n        );\n      return {\n        ...event,\n        event: existingEvent ? existingEvent.event : null,\n        enrollment: match.enrollments[0].enrollment,\n        orgUnit: match.orgUnit,\n      };\n      });\n\n        trackedEntityPayload.events.push(...entityEvents);\n      })\n    } else {\n      console.log(\"orgunit\", orgUnit)\n      trackedEntityPayload.trackedEntities.push({\n        orgUnit: orgUnit,\n        program: \"EThvOOPdWdU\",\n        programStage: \"QfEdltht9gW\",\n        attributes: commonAttributes,\n        enrollments: [\n          {\n            program: \"EThvOOPdWdU\",\n            orgUnit: \"FV43JisquSm\",\n            enrolledAt: enrolledAt,\n            occurredAt: enrolledAt,\n            events: events.map(event => ({\n              ...event,\n              orgUnit: orgUnit\n            }))\n          }\n        ]\n      })\n    }\n  })\n\n  return { trackedEntityPayload, ...state }\n})\n",
+          "adaptor": "@openfn/language-common@2.3.3",
+          "project_credential_id": null
+        },
+        "Create-or-Update-Equipment-and-Temperature-Data": {
+          "id": "205eb1b4-e7f1-4419-849c-420c00bf417d",
+          "name": "Create or Update Equipment and Temperature Data",
+          "body": "fn(state => {\n  state.totalNoIds = state.trackedEntityPayload.trackedEntities.reduce((acc, curr) => {\n    let num = 0;\n    if (\n      !curr?.trackedEntityInstance\n    ) {\n      num++;\n    }\n    return acc + num;\n  }, 0) * 3;\n  return state\n});\n\n\nfnIf($.totalNoIds > 0, get('system/id', {\n  query: state => {\n    return {\n      limit: state.totalNoIds\n    }\n  },\n}));\n\nfn(state => {\n  const { codes = [] } = state.data;\n  const payload = state.trackedEntityPayload;\n\n  payload.trackedEntities = payload.trackedEntities.map(trackedEntity => {\n    const isNew = !trackedEntity.trackedEntityInstance;\n\n    // Assign new trackedEntityInstance ID if needed\n    const trackedEntityInstance = isNew ? codes.shift() : trackedEntity.trackedEntityInstance;\n\n    if (isNew) {\n      // Only new tracked entities have enrollments\n      const enrollments = trackedEntity.enrollments.map(enrollment => {\n        const events = enrollment.events.map(event => ({\n          ...event,\n          event: event.event || codes.shift()\n        }));\n\n        const processedEnrollment = {\n          ...enrollment,\n          enrollment: codes.shift(),\n          events,\n        };\n        delete processedEnrollment.trackedEntity; // DHIS2 doesn't want trackedEntity in enrollment\n        return processedEnrollment;\n      });\n\n      return {\n        ...trackedEntity,\n        trackedEntityInstance,\n        trackedEntityType: \"R3gvyQLmyX8\",\n        enrollments,\n      };\n    } else {\n      // Existing tracked entities: don't touch enrollments\n      return {\n        ...trackedEntity,\n        trackedEntityInstance,\n        trackedEntityType: trackedEntity.trackedEntityType,\n      };\n    }\n  });\n\n  state.trackedEntityPayload = payload;\n  return state;\n})\n\n\ntracker.import('CREATE_AND_UPDATE', $.trackedEntityPayload, { atomicMode: 'OBJECT' })",
+          "adaptor": "@openfn/language-dhis2@7.0.0",
+          "project_credential_id": "c355aed3-d389-48b8-8c81-14a56fa682f3"
+        },
+        "Get-equipments-from-DHIS2": {
+          "id": "ebb3a87c-f1be-4386-89a2-1b14258cfaa5",
+          "name": "Get equipments from DHIS2",
+          "body": "fn(state => {\n  const pageSize = 100;\n  let allTrackedEntityInstances = [];\n\n  const fetchPage = (page) => {\n    return get('tracker/trackedEntities', {\n      fields: 'trackedEntity,trackedEntityType,orgUnit,enrollments[enrollment,enrollmentDate,orgUnit,program,events[event,occurredAt,orgUnit,program,programStage,dataValues[dataElement,value]],attributes[attribute,value]]',\n      ouMode: 'ALL',\n      program: 'EThvOOPdWdU',\n      programStage: 'QfEdltht9gW',\n      paging: true,\n      pageSize: pageSize,\n      page: page\n    })(state).then(response => {\n      const { trackedEntities, pager } = response.data;\n      \n      if (trackedEntities && trackedEntities.length > 0) {\n        allTrackedEntityInstances = [...allTrackedEntityInstances, ...trackedEntities];\n      }\n\n      if (pager && pager.page < pager.pageCount) {\n        return fetchPage(page + 1);\n      } else {\n        console.log(`Total tracked entity instances fetched: ${allTrackedEntityInstances.length}`);\n        return { \n          ...state, \n          data: { \n            ...state.data, \n            trackedEntityInstances: allTrackedEntityInstances \n          } \n        };\n      }\n    }).catch(error => {\n    console.error('Failed to fetch page:', page, error.response?.data || error.message);\n    throw error;\n  });\n  };\n\n  return fetchPage(1);\n});",
+          "adaptor": "@openfn/language-dhis2@6.3.4",
+          "project_credential_id": "c355aed3-d389-48b8-8c81-14a56fa682f3"
+        }
+      },
+      "edges": {
+        "cron->Fetch-Data-from-Email": {
+          "enabled": true,
+          "id": "c70cf6c0-eade-4b73-822d-60fd3a171e83",
+          "target_job_id": "64c929d6-f86d-46ac-8cf7-a1af15e4be93",
+          "source_trigger_id": "bb523d26-331a-4d1f-8690-2fac147a3533",
+          "condition_type": "always"
+        },
+        "Fetch-Data-from-Email->Varo": {
+          "enabled": true,
+          "id": "dd99a5b4-d0be-4cdd-82e3-0a4c39fd2e41",
+          "target_job_id": "a8d85790-d79b-4579-888c-7d60512dc6d5",
+          "source_job_id": "64c929d6-f86d-46ac-8cf7-a1af15e4be93",
+          "condition_type": "on_job_success"
+        },
+        "Data-Transformation-and-Mapping->Create-or-Update-Equipment-and-Temperature-Data": {
+          "enabled": true,
+          "id": "e3bb3337-cb42-4727-82ac-d2840643d015",
+          "target_job_id": "205eb1b4-e7f1-4419-849c-420c00bf417d",
+          "source_job_id": "c6f31911-62a2-4d42-8b5d-efbd75acffaa",
+          "condition_type": "on_job_success",
+          "condition_expression": "{}"
+        },
+        "Varo->Get-equipments-from-DHIS2": {
+          "enabled": true,
+          "id": "83dd4dd4-66ae-4ce0-8a3d-437e4d39dce5",
+          "target_job_id": "ebb3a87c-f1be-4386-89a2-1b14258cfaa5",
+          "source_job_id": "a8d85790-d79b-4579-888c-7d60512dc6d5",
+          "condition_type": "on_job_success"
+        },
+        "Get-equipments-from-DHIS2->Data-Transformation-and-Mapping": {
+          "enabled": true,
+          "id": "cb331059-41dd-45ae-8852-8a5b27d83090",
+          "target_job_id": "c6f31911-62a2-4d42-8b5d-efbd75acffaa",
+          "source_job_id": "ebb3a87c-f1be-4386-89a2-1b14258cfaa5",
+          "condition_type": "on_job_success"
+        }
+      }
+    }
+  }
+}
