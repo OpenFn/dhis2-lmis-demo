@@ -33,7 +33,8 @@ workflows:
         body: |
           fn((state) => {
             // Define constants
-            const QUERY = 'from:georgemcguire99@gmail.com';
+            //const QUERY = 'from:georgemcguire99@gmail.com';
+            const QUERY = '';
             const MAX_RESULTS = 1;
             
           // Single step: Query for messages with all two attachment types at once

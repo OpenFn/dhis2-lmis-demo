@@ -5,10 +5,6 @@
   "concurrency": 4,
   "inserted_at": "2025-04-24T11:34:07Z",
   "updated_at": "2025-06-04T18:51:47Z",
-  "scheduled_deletion": null,
-  "history_retention_period": 365,
-  "dataclip_retention_period": null,
-  "retention_policy": "retain_all",
   "project_credentials": {
     "rediet@openfn.org-LMIS-Sandbox": {
       "id": "c355aed3-d389-48b8-8c81-14a56fa682f3",
@@ -41,6 +37,10 @@
       "owner": "rediet@openfn.org"
     }
   },
+  "scheduled_deletion": null,
+  "history_retention_period": 365,
+  "dataclip_retention_period": null,
+  "retention_policy": "retain_all",
   "allow_support_access": false,
   "collections": {},
   "requires_mfa": false,
@@ -48,8 +48,8 @@
     "Sync-Fridge-Tag-Data-to-DHIS2": {
       "id": "7b30ef95-7cc6-4f4a-8083-923e85346016",
       "name": "Sync Fridge Tag Data to DHIS2",
-      "inserted_at": "2025-06-04T20:18:09.941397Z",
-      "lock_version": 181,
+      "inserted_at": "2025-06-05T11:44:29.763905Z",
+      "lock_version": 186,
       "triggers": {
         "cron": {
           "enabled": false,
@@ -62,7 +62,7 @@
         "Fetch-Data-from-Email": {
           "id": "64c929d6-f86d-46ac-8cf7-a1af15e4be93",
           "name": "Fetch Data from Email",
-          "body": "fn((state) => {\n  // Define constants\n  const QUERY = 'from:georgemcguire99@gmail.com';\n  const MAX_RESULTS = 1;\n  \n// Single step: Query for messages with all two attachment types at once\n  return getContentsFromMessages({\n    query: QUERY,\n    contents: [\n      { type: 'file', name: \"metadata\", file: /^(?!.*(?:DATA|SYNC)).*\\.json$/ },\n      { type: 'file', name: \"fridgeTag\", file: /\\.txt$/ }\n    ],\n    maxResults: MAX_RESULTS\n  })(state)\n  .then((resultState) => {\n    // Process results to find messages with all required attachments\n    // Filter only messages that have both required properties for the Varo adaptor\n    const varoReadyMessages = resultState.data\n      .filter(msg => msg?.metadata?.content && msg?.fridgeTag?.content)\n      .map(msg => {\n        // Return the exact structure expected by Varo adaptor\n        return {\n          metadata: {\n            content: msg.metadata.content,\n            filename: msg.metadata.filename\n          },\n          fridgeTag: {\n            content: msg.fridgeTag.content,\n            filename: msg.fridgeTag.filename\n          },\n          messageId: msg.messageId\n        };\n      });\n    \n    // Log the number of valid messages for Varo\n    console.log(`Found ${varoReadyMessages.length} messages ready for Varo processing`);\n    \n    // Set state.data to be the array of messages in Varo-compatible format\n    return { \n      ...resultState,\n      data: varoReadyMessages\n    };\n  });\n});\n",
+          "body": "fn((state) => {\n  // Define constants\n  //const QUERY = 'from:georgemcguire99@gmail.com';\n  const QUERY = '';\n  const MAX_RESULTS = 1;\n  \n// Single step: Query for messages with all two attachment types at once\n  return getContentsFromMessages({\n    query: QUERY,\n    contents: [\n      { type: 'file', name: \"metadata\", file: /^(?!.*(?:DATA|SYNC)).*\\.json$/ },\n      { type: 'file', name: \"fridgeTag\", file: /\\.txt$/ }\n    ],\n    maxResults: MAX_RESULTS\n  })(state)\n  .then((resultState) => {\n    // Process results to find messages with all required attachments\n    // Filter only messages that have both required properties for the Varo adaptor\n    const varoReadyMessages = resultState.data\n      .filter(msg => msg?.metadata?.content && msg?.fridgeTag?.content)\n      .map(msg => {\n        // Return the exact structure expected by Varo adaptor\n        return {\n          metadata: {\n            content: msg.metadata.content,\n            filename: msg.metadata.filename\n          },\n          fridgeTag: {\n            content: msg.fridgeTag.content,\n            filename: msg.fridgeTag.filename\n          },\n          messageId: msg.messageId\n        };\n      });\n    \n    // Log the number of valid messages for Varo\n    console.log(`Found ${varoReadyMessages.length} messages ready for Varo processing`);\n    \n    // Set state.data to be the array of messages in Varo-compatible format\n    return { \n      ...resultState,\n      data: varoReadyMessages\n    };\n  });\n});\n",
           "adaptor": "@openfn/language-gmail@1.1.4",
           "project_credential_id": "f240961f-3645-4853-bca1-b86b0806854f"
         },
