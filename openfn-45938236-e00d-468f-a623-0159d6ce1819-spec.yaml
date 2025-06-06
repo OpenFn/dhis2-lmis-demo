@@ -22,6 +22,9 @@ credentials:
   rediet@openfn.org-Varo-FridgeTag-Gmail:
     name: Varo FridgeTag Gmail
     owner: rediet@openfn.org
+  rediet@openfn.org-Varo-FridgeTag-Gmail-New:
+    name: Varo FridgeTag Gmail New
+    owner: rediet@openfn.org
 workflows:
   Sync-Fridge-Tag-Data-to-DHIS2:
     name: Sync Fridge Tag Data to DHIS2
@@ -29,12 +32,12 @@ workflows:
       Fetch-Data-from-Email:
         name: Fetch Data from Email
         adaptor: '@openfn/language-gmail@1.1.4'
-        credential: rediet@openfn.org-Varo-FridgeTag-Gmail
+        credential: rediet@openfn.org-Varo-FridgeTag-Gmail-New
         body: |
           fn((state) => {
             // Define constants
             //const QUERY = 'from:georgemcguire99@gmail.com';
-            const QUERY = '';
+            const QUERY = 'has:attachment';
             const MAX_RESULTS = 1;
             
           // Single step: Query for messages with all two attachment types at once
