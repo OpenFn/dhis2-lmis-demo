@@ -5,6 +5,7 @@
   "concurrency": 4,
   "inserted_at": "2025-04-24T11:34:07Z",
   "updated_at": "2025-06-05T12:05:13Z",
+  "scheduled_deletion": null,
   "project_credentials": {
     "rediet@openfn.org-LMIS-Sandbox": {
       "id": "c355aed3-d389-48b8-8c81-14a56fa682f3",
@@ -42,13 +43,10 @@
       "owner": "rediet@openfn.org"
     }
   },
-  "scheduled_deletion": null,
   "history_retention_period": 365,
   "dataclip_retention_period": null,
   "retention_policy": "retain_all",
-  "allow_support_access": false,
   "collections": {},
-  "requires_mfa": false,
   "workflows": {
     "Sync-Fridge-Tag-Data-to-DHIS2": {
       "id": "7b30ef95-7cc6-4f4a-8083-923e85346016",
@@ -139,5 +137,7 @@
         }
       }
     }
-  }
+  },
+  "allow_support_access": false,
+  "requires_mfa": false
 }
