@@ -1,11 +1,17 @@
 {
+  "env": "main",
   "id": "45938236-e00d-468f-a623-0159d6ce1819",
   "name": "dhis2-lmis-demo",
   "description": "Demo project for DHIS2 LMIS and cold chain workflows\n",
+  "color": null,
   "concurrency": 4,
   "inserted_at": "2025-04-24T11:34:07Z",
-  "updated_at": "2025-06-05T12:05:13Z",
+  "updated_at": "2026-03-24T11:35:16Z",
+  "parent_id": null,
   "scheduled_deletion": null,
+  "history_retention_period": 365,
+  "dataclip_retention_period": 365,
+  "retention_policy": "retain_all",
   "project_credentials": {
     "rediet@openfn.org-LMIS-Sandbox": {
       "id": "c355aed3-d389-48b8-8c81-14a56fa682f3",
@@ -41,61 +47,74 @@
       "id": "116f0904-8336-47d9-bafe-da8137937ee8",
       "name": "Varo FridgeTag Gmail New",
       "owner": "rediet@openfn.org"
+    },
+    "rediet@openfn.org-Vara-Fridgetag-Oct-2025": {
+      "id": "33e3b4a2-0228-45f3-b327-cfab2af7396c",
+      "name": "Vara Fridgetag Oct 2025",
+      "owner": "rediet@openfn.org"
+    },
+    "george@dhis2.org-Fridgetag-Gmail-account-George": {
+      "id": "ff7179f8-8c09-4bbc-9fc2-9b660b8666e7",
+      "name": "Fridgetag Gmail account George",
+      "owner": "george@dhis2.org"
+    },
+    "hunter@openfn.org-DHIS2-LMIS-Sandbox---DHIS2-Core-Team": {
+      "id": "7672dfd1-ca2e-4378-a8e7-0305cad5a5e3",
+      "name": "DHIS2 LMIS Sandbox - DHIS2 Core Team",
+      "owner": "hunter@openfn.org"
     }
   },
-  "history_retention_period": 365,
-  "dataclip_retention_period": null,
-  "retention_policy": "retain_all",
   "collections": {},
   "workflows": {
-    "Sync-Fridge-Tag-Data-to-DHIS2": {
+    "1.-Sync-Fridge-Tag-Data-to-DHIS2": {
       "id": "7b30ef95-7cc6-4f4a-8083-923e85346016",
-      "name": "Sync Fridge Tag Data to DHIS2",
-      "inserted_at": "2025-06-06T11:00:18.865446Z",
-      "lock_version": 195,
+      "name": "1. Sync Fridge Tag Data to DHIS2",
+      "inserted_at": "2026-03-24T11:19:29.032787Z",
+      "lock_version": 207,
       "triggers": {
         "cron": {
           "enabled": false,
           "id": "bb523d26-331a-4d1f-8690-2fac147a3533",
           "type": "cron",
-          "cron_expression": "00 00 * * *"
+          "cron_expression": "00 00 * * *",
+          "cron_cursor_job_id": "64c929d6-f86d-46ac-8cf7-a1af15e4be93"
         }
       },
       "jobs": {
         "Fetch-Data-from-Email": {
           "id": "64c929d6-f86d-46ac-8cf7-a1af15e4be93",
           "name": "Fetch Data from Email",
-          "body": "fn((state) => {\n  // Define constants\n  //const QUERY = 'from:georgemcguire99@gmail.com';\n  const QUERY = 'has:attachment';\n  const MAX_RESULTS = 1;\n  \n// Single step: Query for messages with all two attachment types at once\n  return getContentsFromMessages({\n    query: QUERY,\n    contents: [\n      { type: 'file', name: \"metadata\", file: /^(?!.*(?:DATA|SYNC)).*\\.json$/ },\n      { type: 'file', name: \"fridgeTag\", file: /\\.txt$/ }\n    ],\n    maxResults: MAX_RESULTS\n  })(state)\n  .then((resultState) => {\n    // Process results to find messages with all required attachments\n    // Filter only messages that have both required properties for the Varo adaptor\n    const varoReadyMessages = resultState.data\n      .filter(msg => msg?.metadata?.content && msg?.fridgeTag?.content)\n      .map(msg => {\n        // Return the exact structure expected by Varo adaptor\n        return {\n          metadata: {\n            content: msg.metadata.content,\n            filename: msg.metadata.filename\n          },\n          fridgeTag: {\n            content: msg.fridgeTag.content,\n            filename: msg.fridgeTag.filename\n          },\n          messageId: msg.messageId\n        };\n      });\n    \n    // Log the number of valid messages for Varo\n    console.log(`Found ${varoReadyMessages.length} messages ready for Varo processing`);\n    \n    // Set state.data to be the array of messages in Varo-compatible format\n    return { \n      ...resultState,\n      data: varoReadyMessages\n    };\n  });\n});\n",
-          "adaptor": "@openfn/language-gmail@1.1.4",
-          "project_credential_id": "116f0904-8336-47d9-bafe-da8137937ee8"
+          "body": "fn((state) => {\n  // Define query to filter the right emails \n  const QUERY = 'has:attachment';\n  const MAX_RESULTS = 1;\n  \n// Single step: Query for messages with all two attachment types at once\n  return getContentsFromMessages({\n    query: QUERY,\n    contents: [\n      { type: 'file', name: \"metadata\", file: /^(?!.*(?:DATA|SYNC)).*\\.json$/ },\n      { type: 'file', name: \"fridgeTag\", file: /\\.txt$/ }\n    ],\n    maxResults: MAX_RESULTS\n  })(state)\n  .then((resultState) => {\n    // Process results to find messages with all required attachments\n    // Filter only messages that have both required properties for the Varo adaptor\n    const varoReadyMessages = resultState.data\n      .filter(msg => msg?.metadata?.content && msg?.fridgeTag?.content)\n      .map(msg => {\n        // Return the exact structure expected by Varo adaptor\n        return {\n          metadata: {\n            content: msg.metadata.content,\n            filename: msg.metadata.filename\n          },\n          fridgeTag: {\n            content: msg.fridgeTag.content,\n            filename: msg.fridgeTag.filename\n          },\n          messageId: msg.messageId\n        };\n      });\n    \n    // Log the number of valid messages for Varo\n    console.log(`Found ${varoReadyMessages.length} messages ready for Varo processing`);\n    \n    // Set state.data to be the array of messages in Varo-compatible format\n    return { \n      ...resultState,\n      data: varoReadyMessages\n    };\n  });\n});\n",
+          "project_credential_id": "33e3b4a2-0228-45f3-b327-cfab2af7396c",
+          "adaptor": "@openfn/language-gmail@1.1.4"
         },
-        "Varo": {
+        "Convert-to-EMS": {
           "id": "a8d85790-d79b-4579-888c-7d60512dc6d5",
-          "name": "Varo",
+          "name": "Convert to EMS",
           "body": "// Convert the formatted data to EMS format\nconvertToEms($.data);\n//Log the results for verification\nfn((state) => {\n  state.reports = state.data\n  console.log(`Successfully converted ${state.data.length} messages to EMS format`);\n  const { references, data, ...rest } = state;\n  return rest;\n});\n",
-          "adaptor": "@openfn/language-varo@1.0.2",
-          "project_credential_id": null
+          "project_credential_id": null,
+          "adaptor": "@openfn/language-varo@1.0.2"
         },
         "Data-Transformation-and-Mapping": {
           "id": "c6f31911-62a2-4d42-8b5d-efbd75acffaa",
           "name": "Data Transformation and Mapping",
-          "body": "fn(state => {\n\n  const { data, reports } = state;\n  const { trackedEntityInstances } = data\n\n  const trackedEntityPayload = {\n    trackedEntities: [],\n    events: []\n  }\n  reports.forEach(report => {\n    let orgUnit = ''\n    const enrolledAt = new Date().toISOString();\n    const matches = trackedEntityInstances.filter(instance => {\n      const attrs = instance.enrollments?.[0]?.attributes || [];\n      orgUnit = instance.orgUnit\n      return attrs.some(attr => instance.trackedEntityType === \"R3gvyQLmyX8\" && attr.value === report.LSER);\n    });\n\n    const commonAttributes = [\n      { attribute: \"XHdkwj2Gzi8\", value: report.LSER },\n      { attribute: \"juBTPqs6hyQ\", value: report.AMOD },\n      { attribute: \"Dm1zMbsU05X\", value: report.AMFR }\n    ];\n\n    const minutesToHHMM = mins => {\n      if (mins == null || isNaN(mins)) return \"\";\n      // Cap at 23:59 if minutes >= 1440\n      if (mins >= 1440) return \"23:59\";\n      const h = Math.floor(mins / 60);\n      const m = Math.round(mins % 60);\n      return `${h.toString().padStart(2, \"0\")}:${m.toString().padStart(2, \"0\")}`;\n    };\n\n\n    const events = report.reports.map(subReport => {\n      const aggregates = subReport.aggregates?.[0] || {};\n      const alarmCondition = subReport.alarms?.[0]?.condition;\n      const alarmMinutes = subReport.alarms[0]?.conditionMinutes;\n\n      return {\n        program: \"EThvOOPdWdU\",\n        programStage: \"QfEdltht9gW\",\n        status: \"ACTIVE\",\n        enrolledAt: enrolledAt,\n        occurredAt: subReport.date,\n        dataValues: [\n          {\n            dataElement: \"ITjXBXe4LHp\",\n            value: String(aggregates.average || ''),\n          },\n          {\n            dataElement: \"lMGgg93GNCj\",\n            value: \n              (alarmCondition === \"HEAT\" && alarmMinutes > 600) ||\n              (alarmCondition === \"FREEZE\" && alarmMinutes > 60)\n                ? \"ALARM\"\n                : \"ok\"\n          },\n          {\n            dataElement: \"iMon5EnL5tT\",\n            value: String(aggregates.min || '')\n          },\n          {\n            dataElement: \"uKw4f9GjumZ\", \n            value: alarmCondition === 'HEAT' ? minutesToHHMM(alarmMinutes) : \"00:00\"\n          },\n          {\n            dataElement: \"ZkLhYyo0muJ\", \n            value: alarmCondition === 'FREEZE' ? minutesToHHMM(alarmMinutes) : \"00:00\"\n          },\n          {\n            dataElement: \"pXXv6fqYhhx\",\n            value: String(aggregates.max || ''),\n          },\n          {\n            dataElement: \"YBjvNW66Q78\",\n            value: subReport.alarms[0]?.condition,\n          }\n        ],\n      }\n    });\n\n    if (matches.length > 0) {\n      matches.forEach(match => {\n        trackedEntityPayload.trackedEntities.push({\n          orgUnit: match.orgUnit,\n          program: \"EThvOOPdWdU\",\n          programStage: \"QfEdltht9gW\",\n          trackedEntityType: \"R3gvyQLmyX8\",\n          attributes: commonAttributes,\n          trackedEntityInstance: match.trackedEntity,\n          trackedEntity: match.trackedEntity,\n        });\n\n      const entityEvents = events.map(event => {\n      const existingEvent = match.enrollments[0].events\n        .find(e =>\n          e.occurredAt && event.occurredAt &&\n          new Date(e.occurredAt).toISOString().slice(0,10) ===\n          new Date(event.occurredAt).toISOString().slice(0,10)\n        );\n      return {\n        ...event,\n        event: existingEvent ? existingEvent.event : null,\n        enrollment: match.enrollments[0].enrollment,\n        orgUnit: match.orgUnit,\n      };\n      });\n\n        trackedEntityPayload.events.push(...entityEvents);\n      })\n    } else {\n      console.log(\"orgunit\", orgUnit)\n      trackedEntityPayload.trackedEntities.push({\n        orgUnit: orgUnit,\n        program: \"EThvOOPdWdU\",\n        programStage: \"QfEdltht9gW\",\n        attributes: commonAttributes,\n        enrollments: [\n          {\n            program: \"EThvOOPdWdU\",\n            orgUnit: \"FV43JisquSm\",\n            enrolledAt: enrolledAt,\n            occurredAt: enrolledAt,\n            events: events.map(event => ({\n              ...event,\n              orgUnit: orgUnit\n            }))\n          }\n        ]\n      })\n    }\n  })\n\n  return { trackedEntityPayload, ...state }\n})\n",
-          "adaptor": "@openfn/language-common@2.3.3",
-          "project_credential_id": null
+          "body": "//Identify if equipment data should be created and modified\nfn(state => {\n\n  const { data, reports } = state;\n  const { trackedEntityInstances } = data\n\n  const trackedEntityPayload = {\n    trackedEntities: [],\n    events: []\n  }\n  reports.forEach(report => {\n    let orgUnit = ''\n    const enrolledAt = new Date().toISOString();\n    const matches = trackedEntityInstances.filter(instance => {\n      const attrs = instance.enrollments?.[0]?.attributes || [];\n      orgUnit = instance.orgUnit\n      return attrs.some(attr => instance.trackedEntityType === \"R3gvyQLmyX8\" && attr.value === report.LSER);\n    });\n\n    const commonAttributes = [\n      { attribute: \"XHdkwj2Gzi8\", value: report.LSER },\n      { attribute: \"juBTPqs6hyQ\", value: report.AMOD },\n      { attribute: \"Dm1zMbsU05X\", value: report.AMFR }\n    ];\n\n    const minutesToHHMM = mins => {\n      if (mins == null || isNaN(mins)) return \"\";\n      // Cap at 23:59 if minutes >= 1440\n      if (mins >= 1440) return \"23:59\";\n      const h = Math.floor(mins / 60);\n      const m = Math.round(mins % 60);\n      return `${h.toString().padStart(2, \"0\")}:${m.toString().padStart(2, \"0\")}`;\n    };\n\n\n    const events = report.reports.map(subReport => {\n      const aggregates = subReport.aggregates?.[0] || {};\n      const alarmCondition = subReport.alarms?.[0]?.condition;\n      const alarmMinutes = subReport.alarms[0]?.conditionMinutes;\n\n      return {\n        program: \"EThvOOPdWdU\",\n        programStage: \"QfEdltht9gW\",\n        status: \"ACTIVE\",\n        enrolledAt: enrolledAt,\n        occurredAt: subReport.date,\n        dataValues: [\n          {\n            dataElement: \"ITjXBXe4LHp\",\n            value: String(aggregates.average || ''),\n          },\n          {\n            dataElement: \"lMGgg93GNCj\",\n            value: \n              (alarmCondition === \"HEAT\" && alarmMinutes > 600) ||\n              (alarmCondition === \"FREEZE\" && alarmMinutes > 60)\n                ? \"ALARM\"\n                : \"ok\"\n          },\n          {\n            dataElement: \"iMon5EnL5tT\",\n            value: String(aggregates.min || '')\n          },\n          {\n            dataElement: \"uKw4f9GjumZ\", \n            value: alarmCondition === 'HEAT' ? minutesToHHMM(alarmMinutes) : \"00:00\"\n          },\n          {\n            dataElement: \"ZkLhYyo0muJ\", \n            value: alarmCondition === 'FREEZE' ? minutesToHHMM(alarmMinutes) : \"00:00\"\n          },\n          {\n            dataElement: \"pXXv6fqYhhx\",\n            value: String(aggregates.max || ''),\n          },\n          {\n            dataElement: \"YBjvNW66Q78\",\n            value: subReport.alarms[0]?.condition,\n          }\n        ],\n      }\n    });\n\n    if (matches.length > 0) {\n      matches.forEach(match => {\n        trackedEntityPayload.trackedEntities.push({\n          orgUnit: match.orgUnit,\n          program: \"EThvOOPdWdU\",\n          programStage: \"QfEdltht9gW\",\n          trackedEntityType: \"R3gvyQLmyX8\",\n          attributes: commonAttributes,\n          trackedEntityInstance: match.trackedEntity,\n          trackedEntity: match.trackedEntity,\n        });\n\n      const entityEvents = events.map(event => {\n      const existingEvent = match.enrollments[0].events\n        .find(e =>\n          e.occurredAt && event.occurredAt &&\n          new Date(e.occurredAt).toISOString().slice(0,10) ===\n          new Date(event.occurredAt).toISOString().slice(0,10)\n        );\n      return {\n        ...event,\n        event: existingEvent ? existingEvent.event : null,\n        enrollment: match.enrollments[0].enrollment,\n        orgUnit: match.orgUnit,\n      };\n      });\n\n        trackedEntityPayload.events.push(...entityEvents);\n      })\n    } else {\n      console.log(\"orgunit\", orgUnit)\n      trackedEntityPayload.trackedEntities.push({\n        orgUnit: orgUnit,\n        program: \"EThvOOPdWdU\",\n        programStage: \"QfEdltht9gW\",\n        attributes: commonAttributes,\n        enrollments: [\n          {\n            program: \"EThvOOPdWdU\",\n            orgUnit: \"FV43JisquSm\",\n            enrolledAt: enrolledAt,\n            occurredAt: enrolledAt,\n            events: events.map(event => ({\n              ...event,\n              orgUnit: orgUnit\n            }))\n          }\n        ]\n      })\n    }\n  })\n\n  return { trackedEntityPayload, ...state }\n})\n",
+          "project_credential_id": null,
+          "adaptor": "@openfn/language-common@2.3.3"
         },
         "Create-or-Update-Equipment-and-Temperature-Data": {
           "id": "205eb1b4-e7f1-4419-849c-420c00bf417d",
           "name": "Create or Update Equipment and Temperature Data",
           "body": "fn(state => {\n  state.totalNoIds = state.trackedEntityPayload.trackedEntities.reduce((acc, curr) => {\n    let num = 0;\n    if (\n      !curr?.trackedEntityInstance\n    ) {\n      num++;\n    }\n    return acc + num;\n  }, 0) * 3;\n  return state\n});\n\n\nfnIf($.totalNoIds > 0, get('system/id', {\n  query: state => {\n    return {\n      limit: state.totalNoIds\n    }\n  },\n}));\n\nfn(state => {\n  const { codes = [] } = state.data;\n  const payload = state.trackedEntityPayload;\n\n  payload.trackedEntities = payload.trackedEntities.map(trackedEntity => {\n    const isNew = !trackedEntity.trackedEntityInstance;\n\n    // Assign new trackedEntityInstance ID if needed\n    const trackedEntityInstance = isNew ? codes.shift() : trackedEntity.trackedEntityInstance;\n\n    if (isNew) {\n      // Only new tracked entities have enrollments\n      const enrollments = trackedEntity.enrollments.map(enrollment => {\n        const events = enrollment.events.map(event => ({\n          ...event,\n          event: event.event || codes.shift()\n        }));\n\n        const processedEnrollment = {\n          ...enrollment,\n          enrollment: codes.shift(),\n          events,\n        };\n        delete processedEnrollment.trackedEntity; // DHIS2 doesn't want trackedEntity in enrollment\n        return processedEnrollment;\n      });\n\n      return {\n        ...trackedEntity,\n        trackedEntityInstance,\n        trackedEntityType: \"R3gvyQLmyX8\",\n        enrollments,\n      };\n    } else {\n      // Existing tracked entities: don't touch enrollments\n      return {\n        ...trackedEntity,\n        trackedEntityInstance,\n        trackedEntityType: trackedEntity.trackedEntityType,\n      };\n    }\n  });\n\n  state.trackedEntityPayload = payload;\n  return state;\n})\n\n\ntracker.import('CREATE_AND_UPDATE', $.trackedEntityPayload, { atomicMode: 'OBJECT' })",
-          "adaptor": "@openfn/language-dhis2@7.0.0",
-          "project_credential_id": "c355aed3-d389-48b8-8c81-14a56fa682f3"
+          "project_credential_id": "c355aed3-d389-48b8-8c81-14a56fa682f3",
+          "adaptor": "@openfn/language-dhis2@7.0.0"
         },
         "Get-equipments-from-DHIS2": {
           "id": "ebb3a87c-f1be-4386-89a2-1b14258cfaa5",
           "name": "Get equipments from DHIS2",
-          "body": "fn(state => {\n  const pageSize = 100;\n  let allTrackedEntityInstances = [];\n\n  const fetchPage = (page) => {\n    return get('tracker/trackedEntities', {\n      fields: 'trackedEntity,trackedEntityType,orgUnit,enrollments[enrollment,enrollmentDate,orgUnit,program,events[event,occurredAt,orgUnit,program,programStage,dataValues[dataElement,value]],attributes[attribute,value]]',\n      ouMode: 'ALL',\n      program: 'EThvOOPdWdU',\n      programStage: 'QfEdltht9gW',\n      paging: true,\n      pageSize: pageSize,\n      page: page\n    })(state).then(response => {\n      const { trackedEntities, pager } = response.data;\n      \n      if (trackedEntities && trackedEntities.length > 0) {\n        allTrackedEntityInstances = [...allTrackedEntityInstances, ...trackedEntities];\n      }\n\n      if (pager && pager.page < pager.pageCount) {\n        return fetchPage(page + 1);\n      } else {\n        console.log(`Total tracked entity instances fetched: ${allTrackedEntityInstances.length}`);\n        return { \n          ...state, \n          data: { \n            ...state.data, \n            trackedEntityInstances: allTrackedEntityInstances \n          } \n        };\n      }\n    }).catch(error => {\n    console.error('Failed to fetch page:', page, error.response?.data || error.message);\n    throw error;\n  });\n  };\n\n  return fetchPage(1);\n});",
-          "adaptor": "@openfn/language-dhis2@6.3.4",
-          "project_credential_id": "c355aed3-d389-48b8-8c81-14a56fa682f3"
+          "body": "//Get existing tracked entities from DHIS2\nfn(state => {\n  const pageSize = 100;\n  let allTrackedEntityInstances = [];\n\n  const fetchPage = (page) => {\n    return get('tracker/trackedEntities', {\n      fields: 'trackedEntity,trackedEntityType,orgUnit,enrollments[enrollment,enrollmentDate,orgUnit,program,events[event,occurredAt,orgUnit,program,programStage,dataValues[dataElement,value]],attributes[attribute,value]]',\n      ouMode: 'ALL',\n      program: 'EThvOOPdWdU',\n      programStage: 'QfEdltht9gW',\n      paging: true,\n      pageSize: pageSize,\n      page: page\n    })(state).then(response => {\n      const { trackedEntities, pager } = response.data;\n      \n      if (trackedEntities && trackedEntities.length > 0) {\n        allTrackedEntityInstances = [...allTrackedEntityInstances, ...trackedEntities];\n      }\n\n      if (pager && pager.page < pager.pageCount) {\n        return fetchPage(page + 1);\n      } else {\n        console.log(`Total tracked entity instances fetched: ${allTrackedEntityInstances.length}`);\n        return { \n          ...state, \n          data: { \n            ...state.data, \n            trackedEntityInstances: allTrackedEntityInstances \n          } \n        };\n      }\n    }).catch(error => {\n    console.error('Failed to fetch page:', page, error.response?.data || error.message);\n    throw error;\n  });\n  };\n\n  return fetchPage(1);\n});",
+          "project_credential_id": "c355aed3-d389-48b8-8c81-14a56fa682f3",
+          "adaptor": "@openfn/language-dhis2@6.3.4"
         }
       },
       "edges": {
@@ -106,7 +125,7 @@
           "source_trigger_id": "bb523d26-331a-4d1f-8690-2fac147a3533",
           "condition_type": "always"
         },
-        "Fetch-Data-from-Email->Varo": {
+        "Fetch-Data-from-Email->Convert-to-EMS": {
           "enabled": true,
           "id": "dd99a5b4-d0be-4cdd-82e3-0a4c39fd2e41",
           "target_job_id": "a8d85790-d79b-4579-888c-7d60512dc6d5",
@@ -121,7 +140,7 @@
           "condition_type": "on_job_success",
           "condition_expression": "{}"
         },
-        "Varo->Get-equipments-from-DHIS2": {
+        "Convert-to-EMS->Get-equipments-from-DHIS2": {
           "enabled": true,
           "id": "83dd4dd4-66ae-4ce0-8a3d-437e4d39dce5",
           "target_job_id": "ebb3a87c-f1be-4386-89a2-1b14258cfaa5",
@@ -136,8 +155,117 @@
           "condition_type": "on_job_success"
         }
       }
+    },
+    "2.-Ingest-WHO-PQS-Cold-Chain-Catalogue-Data": {
+      "id": "b346442e-4800-4550-ac7c-83af93883bab",
+      "name": "2. Ingest WHO PQS Cold Chain Catalogue Data",
+      "inserted_at": "2026-05-19T09:08:25.596454Z",
+      "lock_version": 89,
+      "triggers": {
+        "cron": {
+          "enabled": false,
+          "id": "d38ae31a-250b-4a56-84d8-a90d0c6339b7",
+          "type": "cron",
+          "cron_expression": "0 0 * * *"
+        }
+      },
+      "jobs": {
+        "Fetch-WHO-PQS-Catalogue": {
+          "id": "be482233-f586-43d9-8e1d-c93f968751c9",
+          "name": "Fetch WHO PQS Catalogue",
+          "body": "get('https://extranet.who.int/prequal/sites/default/files/immunization_devices/json/catalogs/immunization_devices_catalogue.json')\n  .then(state => {\n    state.catalogue = state.data;\n    return state;\n  });\n",
+          "project_credential_id": null,
+          "adaptor": "@openfn/language-http@7.2.10"
+        },
+        "Select-E003-Devices": {
+          "id": "e0eeb63f-67aa-420b-86c4-7703c9c8f078",
+          "name": "Select E003 Devices",
+          "body": "fn(state => {\n  const e003 = state.catalogue.e003 || [];\n\n  // MVP: filter to just E003-023. To process all devices, remove this filter.\n  const devices = e003.filter(device => device.id === \"E003-024\");\n\n  console.log(`Selected ${devices.length} device(s) to process`);\n  return { ...state, devices };\n})\n",
+          "project_credential_id": null,
+          "adaptor": "@openfn/language-common@3.3.1"
+        },
+        "Look-Up-Existing-Device-Data-in-DHIS2": {
+          "id": "621d9a71-f1eb-48c7-8460-239502e6246e",
+          "name": "Look Up Existing Device Data in DHIS2",
+          "body": "\nfn(state => {\n  state.deviceResults = [];\n  return state;\n});\n\neach(\n  $.devices,\n  tracker.export('trackedEntities', state => ({\n    orgUnit: 'tzOZlQkQYxv',\n    program: 'pPHkq2q2OrH',\n    filter: `iFqrxSsWh6j:EQ:${state.data.details[\"imd-pqs_code\"]}`,\n  }))\n    .then(state => {\n      const device = state.devices[state.index];\n      const entities = state.data?.trackedEntities || [];\n\n      if (entities.length === 0) {\n        console.error(`No TEI found for PQS code: ${device.details[\"imd-pqs_code\"]} — skipping`);\n        return state;\n      }\n      if (entities.length > 1) {\n        console.error(`Multiple TEIs found for PQS code: ${device.details[\"imd-pqs_code\"]} — skipping`);\n        return state;\n      }\n\n      state.deviceResults.push({ device, teiId: entities[0].trackedEntity });\n      console.log(`TEI found for ${device.details[\"imd-pqs_code\"]}: ${entities[0].trackedEntity}`);\n      return state;\n    })\n);",
+          "project_credential_id": "7672dfd1-ca2e-4378-a8e7-0305cad5a5e3",
+          "adaptor": "@openfn/language-dhis2@8.0.12"
+        },
+        "Transform-Catalogue-Data": {
+          "id": "31f401d8-0f77-43eb-87de-a0fae62fb3ca",
+          "name": "Transform Catalogue Data",
+          "body": "fn(state => {\n  state.transformedDevices = [];\n  return state;\n});\n\neach(\n  $.deviceResults,\n  fn(state => {\n    const { device, teiId } = state.data;\n    const details = device.details;\n    const status = device.status;\n    const product_sites = device.product_sites;\n    const specs = device.specifications || {};\n    const main = specs.product_specifications_main || {};\n    const fridge = specs.product_specifications_additional_refrigerator || {};\n    const freezer = specs.product_specifications_additional_freezer || {};\n    const field_group_1 = specs.field_group_1 || {};\n    const pricing = specs.price_and_shipping || {};\n    const quality = specs.quality_standard || {};\n    const verification = specs.verification || {};\n\n    const attributes = [\n      // Core identifiers\n      { attribute: \"SIBMvyNBxab\", value: device.id },\n      { attribute: \"rxgIKww28O2\", value: device.title },\n\n      // Details\n      { attribute: \"iFqrxSsWh6j\", value: details['imd-pqs_code'] },\n      { attribute: \"juBTPqs6hyQ\", value: details.product_name },\n      { attribute: \"LQuLDBfPwta\", value: details.appliance_type },\n      { attribute: \"SeHByjACFxM\", value: details.date_of_acceptance ? new Date(details.date_of_acceptance).toISOString().slice(0, 10) : null },\n      { attribute: \"oc5vHLl3NMW\", value: details.product_description },\n      { attribute: \"Dm1zMbsU05X\", value: details.manufacturer },\n      { attribute: \"rbTUbG7P3YN\", value: details.manufacturers_reference },\n      { attribute: \"s9GdBOXqbB3\", value: details.country_of_manufacture },\n      { attribute: \"rbj4GPcdaWL\", value: details.address },\n      { attribute: \"rRZFdsU9MTV\", value: details.telephone },\n      { attribute: \"tmXdTXTI1sz\", value: details.email },\n      { attribute: \"AFzvrHbjVcP\", value: details.website_address },\n      { attribute: \"Jxo02DBreLK\", value: details.valid_until ? new Date(details.valid_until).toISOString().slice(0, 10) : null },\n      { attribute: \"niiV7PPzYvk\", value: details.status },\n\n      // Status\n      { attribute: \"iXCLrFaw7Sg\", value: status.current },\n      { attribute: \"NIJQnrXOY2v\", value: status.valid_until ? new Date(status.valid_until).toISOString().slice(0, 10) : null },\n      { attribute: \"WW7szLfmLck\", value: status.note },\n\n      // Product sites\n      { attribute: \"ZWgBZuS4qin\", value: product_sites?.organization_name },\n      { attribute: \"E8wIbXleNeh\", value: product_sites?.address },\n\n      // Specifications: product_specifications_main\n      { attribute: \"vFhJZypQr8q\", value: main['climate_zone'] },\n      { attribute: \"tO95R4PHrlR\", value: main['minimum_rated_ambient_temperature_(°c)'] },\n      { attribute: \"dxOksQqXlP4\", value: main['freeze_protection'] },\n      { attribute: \"cEB8ilTELYN\", value: main['hold_over_time_(hours:mn)'] },\n      { attribute: \"wsIVYvOCrFD\", value: main['external_dimensions_length_(mm)'] },\n      { attribute: \"oZz5CFFjn0c\", value: main['external_dimensions_width_(mm)'] },\n      { attribute: \"F8m3gyoHDlU\", value: main['external_dimensions_height_(mm)'] },\n      { attribute: \"lFqVeJ8TV69\", value: main['appliance_tested_at_(°c)'] },\n      { attribute: \"pDfYAeS8VP4\", value: main['performance_at\"_(°c)'] },\n      { attribute: \"esuxoiQRA19\", value: main['fuel_and_refrigeration_cycle'] },\n      { attribute: \"u1xxerCNyuK\", value: main['energy_source'] },\n      { attribute: \"uvc50MPk934\", value: main['lining'] },\n      { attribute: \"O8ptdE5XpYr\", value: main['energy_consumption_during_freezing_(kwh/24h)'] },\n      { attribute: \"BwixJy32JKB\", value: main['energy_consumption_cool_down_(kwh/24h)'] },\n      { attribute: \"Lvd2xnA05WV\", value: main['energy_consumption_continuous_power_(kwh/24h)'] },\n\n      // Specifications: product_specifications_additional_refrigerator\n      { attribute: \"wBr4wccNBj1\", value: fridge['refrigerant_type'] },\n      { attribute: \"MBczRWvfM46\", value: fridge['solar_radiation_ref_period_(kwh/m2/day)'] },\n\n      // Specifications: product_specifications_additional_freezer\n      { attribute: \"vjhz1PsQSUR\", value: freezer['freezer_type'] },\n      { attribute: \"oOEAjPMDPvq\", value: freezer['freezer_net_volume'] },\n      { attribute: \"BqaEWTBG3RB\", value: freezer[\"freezer's_gross_volume_(litres)\"] },\n      { attribute: \"EGt1ckoL2Z2\", value: freezer['waterpack_freezing_capacity_(kg/24_hrs)'] },\n      { attribute: \"opV7LjgIyVk\", value: freezer['waterpack_storage_capacity_(litres)'] },\n\n      // Specifications: field_group_1\n      { attribute: \"RfZORQuqk3z\", value: field_group_1['comments'] },\n      { attribute: \"atPosseny28\", value: field_group_1['list_of_accessories'] },\n      { attribute: \"fxwLC2jaE6N\", value: field_group_1['list_of_spare_parts,_reference_&_price'] },\n\n      // Specifications: price_and_shipping\n      { attribute: \"KDgzfJ5dzOz\", value: pricing['shipping_volume_(m3)'] },\n      { attribute: \"pK4B75MsEjy\", value: pricing['shipping_weight_(kg)'] },\n      { attribute: \"kaWRhMz1cb6\", value: pricing['incoterms'] },\n      { attribute: \"reIPgs6e8jJ\", value: pricing['price_1'] },\n      { attribute: \"lt8K6EDALuy\", value: pricing['price_2'] },\n      { attribute: \"J5oV9UxFVeo\", value: pricing['year_of_base_price'] },\n\n      // Specifications: quality_standard\n      { attribute: \"qmXEoqXvVjv\", value: quality['quality_standard'] },\n      { attribute: \"o9jERwG4Z12\", value: quality['quality_standard_(other)'] },\n      { attribute: \"qWqCTx4TIVB\", value: quality['specification_reference'] },\n\n      // Specifications: verification\n      { attribute: \"LU3bom2sxd9\", value: verification['verification_report_reference'] },\n    ].filter(attr => attr.value !== undefined && attr.value !== null);\n\n    state.transformedDevices.push({ teiId, attributes });\n    console.log(`Transformed device: ${details['imd-pqs_code']} — ${attributes.length} attributes`);\n    return state;\n  })\n);",
+          "project_credential_id": null,
+          "adaptor": "@openfn/language-common@3.3.1"
+        },
+        "Update-Device-Data": {
+          "id": "96a26ae9-75cd-4fdd-82bd-ae0ec41f16fe",
+          "name": "Update Device Data",
+          "body": "each(\n  $.transformedDevices,\n  tracker.import(\n    'CREATE_AND_UPDATE',\n    state => ({\n      trackedEntities: [{\n        orgUnit: 'tzOZlQkQYxv',\n        trackedEntityType: 'uzOrtBLBGeq',\n        trackedEntity: state.data.teiId,\n        attributes: state.data.attributes,\n      }]\n    }),\n    { atomicMode: 'ALL' }\n  )\n    .catch((error, state) => {\n      const transformed = state.transformedDevices[state.index];\n      console.error(`Failed to update TEI ${transformed.teiId}: ${error.message}`);\n      state.errorLogs ??= [];\n      state.errorLogs.push([new Date(), transformed.teiId, error.message]);\n      return state;\n    })\n    .then(state => {\n      const device = state.transformedDevices[state.index];\n      console.log(`Successfully updated TEI: ${device.teiId}`);\n      return state;\n    })\n);\n",
+          "project_credential_id": "7672dfd1-ca2e-4378-a8e7-0305cad5a5e3",
+          "adaptor": "@openfn/language-dhis2@8.0.12"
+        },
+        "Logging": {
+          "id": "50abae35-3b00-4c7e-87fb-26c610b8211b",
+          "name": "Logging",
+          "body": "fn(state => {\n  console.log(`Devices selected: ${state.devices?.length ?? 0}`);\n  console.log(`TEIs resolved: ${state.deviceResults?.length ?? 0}`);\n  console.log(`Devices transformed: ${state.transformedDevices?.length ?? 0}`);\n\n  if (state.deviceResults?.length === 0) {\n    console.error('No TEIs were resolved — check PQS codes exist in DHIS2');\n  }\n\n  if (state.errorLogs?.length > 0) {\n    console.error(`${state.errorLogs.length} update(s) failed:`);\n    state.errorLogs.forEach(([timestamp, teiId, message]) => {\n      console.error(`  ${timestamp} | ${teiId} | ${message}`);\n    });\n  } else {\n    console.log('All TEI updates completed successfully');\n  }\n\n  return state;\n});",
+          "project_credential_id": null,
+          "adaptor": "@openfn/language-common@3.3.1"
+        }
+      },
+      "edges": {
+        "cron->Fetch-WHO-PQS-Catalogue": {
+          "enabled": true,
+          "id": "4b12886d-3584-4700-829f-9e2cdb405c72",
+          "target_job_id": "be482233-f586-43d9-8e1d-c93f968751c9",
+          "source_trigger_id": "d38ae31a-250b-4a56-84d8-a90d0c6339b7",
+          "condition_type": "always"
+        },
+        "Fetch-WHO-PQS-Catalogue->Select-E003-Devices": {
+          "enabled": true,
+          "id": "69270d5f-0761-4086-885d-464dc782dc35",
+          "target_job_id": "e0eeb63f-67aa-420b-86c4-7703c9c8f078",
+          "source_job_id": "be482233-f586-43d9-8e1d-c93f968751c9",
+          "condition_type": "on_job_success"
+        },
+        "Select-E003-Devices->Look-Up-Existing-Device-Data-in-DHIS2": {
+          "enabled": true,
+          "id": "58583dd7-b918-4f02-829a-954daa6c8240",
+          "target_job_id": "621d9a71-f1eb-48c7-8460-239502e6246e",
+          "source_job_id": "e0eeb63f-67aa-420b-86c4-7703c9c8f078",
+          "condition_type": "js_expression",
+          "condition_label": "Devices found",
+          "condition_expression": "!state.errors && state.devices && state.devices.length > 0"
+        },
+        "Look-Up-Existing-Device-Data-in-DHIS2->Transform-Catalogue-Data": {
+          "enabled": true,
+          "id": "148445f9-ab5d-4bea-8bf4-751beaca0c77",
+          "target_job_id": "31f401d8-0f77-43eb-87de-a0fae62fb3ca",
+          "source_job_id": "621d9a71-f1eb-48c7-8460-239502e6246e",
+          "condition_type": "js_expression",
+          "condition_label": "TEID exists",
+          "condition_expression": "!state.errors && state.deviceResults && state.deviceResults.length > 0"
+        },
+        "Transform-Catalogue-Data->Update-Device-Data": {
+          "enabled": true,
+          "id": "97fe8426-a36d-41de-8512-71163f77ea68",
+          "target_job_id": "96a26ae9-75cd-4fdd-82bd-ae0ec41f16fe",
+          "source_job_id": "31f401d8-0f77-43eb-87de-a0fae62fb3ca",
+          "condition_type": "js_expression",
+          "condition_label": "TEID and Attributes Exist",
+          "condition_expression": "!state.errors && state.transformedDevices && state.transformedDevices.length > 0"
+        },
+        "Update-Device-Data->Logging": {
+          "enabled": true,
+          "id": "79cbc10c-d2ab-41c0-8df8-6dccd4c0da9c",
+          "target_job_id": "50abae35-3b00-4c7e-87fb-26c610b8211b",
+          "source_job_id": "96a26ae9-75cd-4fdd-82bd-ae0ec41f16fe",
+          "condition_type": "on_job_success"
+        }
+      }
     }
   },
   "allow_support_access": false,
-  "requires_mfa": false
+  "requires_mfa": false,
+  "channels": {}
 }

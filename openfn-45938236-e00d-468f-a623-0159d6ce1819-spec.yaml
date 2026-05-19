@@ -4,6 +4,12 @@ description: |
 
 collections: null
 credentials:
+  george@dhis2.org-Fridgetag-Gmail-account-George:
+    name: Fridgetag Gmail account George
+    owner: george@dhis2.org
+  hunter@openfn.org-DHIS2-LMIS-Sandbox---DHIS2-Core-Team:
+    name: DHIS2 LMIS Sandbox - DHIS2 Core Team
+    owner: hunter@openfn.org
   hunter@openfn.org-GMail-Demo-Creds:
     name: GMail Demo Creds
     owner: hunter@openfn.org
@@ -19,6 +25,9 @@ credentials:
   rediet@openfn.org-Rediets-Gmail:
     name: Rediets Gmail
     owner: rediet@openfn.org
+  rediet@openfn.org-Vara-Fridgetag-Oct-2025:
+    name: Vara Fridgetag Oct 2025
+    owner: rediet@openfn.org
   rediet@openfn.org-Varo-FridgeTag-Gmail:
     name: Varo FridgeTag Gmail
     owner: rediet@openfn.org
@@ -26,17 +35,16 @@ credentials:
     name: Varo FridgeTag Gmail New
     owner: rediet@openfn.org
 workflows:
-  Sync-Fridge-Tag-Data-to-DHIS2:
-    name: Sync Fridge Tag Data to DHIS2
+  1.-Sync-Fridge-Tag-Data-to-DHIS2:
+    name: 1. Sync Fridge Tag Data to DHIS2
     jobs:
       Fetch-Data-from-Email:
         name: Fetch Data from Email
         adaptor: '@openfn/language-gmail@1.1.4'
-        credential: rediet@openfn.org-Varo-FridgeTag-Gmail-New
+        credential: rediet@openfn.org-Vara-Fridgetag-Oct-2025
         body: |
           fn((state) => {
-            // Define constants
-            //const QUERY = 'from:georgemcguire99@gmail.com';
+            // Define query to filter the right emails 
             const QUERY = 'has:attachment';
             const MAX_RESULTS = 1;
             
@@ -80,8 +88,8 @@ workflows:
             });
           });
 
-      Varo:
-        name: Varo
+      Convert-to-EMS:
+        name: Convert to EMS
         adaptor: '@openfn/language-varo@1.0.2'
         credential: null
         body: |
@@ -100,6 +108,7 @@ workflows:
         adaptor: '@openfn/language-common@2.3.3'
         credential: null
         body: |
+          //Identify if equipment data should be created and modified
           fn(state => {
 
             const { data, reports } = state;
@@ -318,6 +327,7 @@ workflows:
         adaptor: '@openfn/language-dhis2@6.3.4'
         credential: rediet@openfn.org-LMIS-Sandbox
         body: |
+          //Get existing tracked entities from DHIS2
           fn(state => {
             const pageSize = 100;
             let allTrackedEntityInstances = [];
@@ -362,6 +372,7 @@ workflows:
       cron:
         type: cron
         cron_expression: '00 00 * * *'
+        cron_cursor_job: Fetch-Data-from-Email
         enabled: false
     edges:
       cron->Fetch-Data-from-Email:
@@ -369,9 +380,9 @@ workflows:
         target_job: Fetch-Data-from-Email
         condition_type: always
         enabled: true
-      Fetch-Data-from-Email->Varo:
+      Fetch-Data-from-Email->Convert-to-EMS:
         source_job: Fetch-Data-from-Email
-        target_job: Varo
+        target_job: Convert-to-EMS
         condition_type: on_job_success
         enabled: true
       Data-Transformation-and-Mapping->Create-or-Update-Equipment-and-Temperature-Data:
@@ -379,13 +390,292 @@ workflows:
         target_job: Create-or-Update-Equipment-and-Temperature-Data
         condition_type: on_job_success
         enabled: true
-      Varo->Get-equipments-from-DHIS2:
-        source_job: Varo
+      Convert-to-EMS->Get-equipments-from-DHIS2:
+        source_job: Convert-to-EMS
         target_job: Get-equipments-from-DHIS2
         condition_type: on_job_success
         enabled: true
       Get-equipments-from-DHIS2->Data-Transformation-and-Mapping:
         source_job: Get-equipments-from-DHIS2
         target_job: Data-Transformation-and-Mapping
+        condition_type: on_job_success
+        enabled: true
+  2.-Ingest-WHO-PQS-Cold-Chain-Catalogue-Data:
+    name: 2. Ingest WHO PQS Cold Chain Catalogue Data
+    jobs:
+      Fetch-WHO-PQS-Catalogue:
+        name: Fetch WHO PQS Catalogue
+        adaptor: '@openfn/language-http@7.2.10'
+        credential: null
+        body: |
+          get('https://extranet.who.int/prequal/sites/default/files/immunization_devices/json/catalogs/immunization_devices_catalogue.json')
+            .then(state => {
+              state.catalogue = state.data;
+              return state;
+            });
+
+      Select-E003-Devices:
+        name: Select E003 Devices
+        adaptor: '@openfn/language-common@3.3.1'
+        credential: null
+        body: |
+          fn(state => {
+            const e003 = state.catalogue.e003 || [];
+
+            // MVP: filter to just E003-023. To process all devices, remove this filter.
+            const devices = e003.filter(device => device.id === "E003-024");
+
+            console.log(`Selected ${devices.length} device(s) to process`);
+            return { ...state, devices };
+          })
+
+      Look-Up-Existing-Device-Data-in-DHIS2:
+        name: Look Up Existing Device Data in DHIS2
+        adaptor: '@openfn/language-dhis2@8.0.12'
+        credential: hunter@openfn.org-DHIS2-LMIS-Sandbox---DHIS2-Core-Team
+        body: |
+          
+          fn(state => {
+            state.deviceResults = [];
+            return state;
+          });
+
+          each(
+            $.devices,
+            tracker.export('trackedEntities', state => ({
+              orgUnit: 'tzOZlQkQYxv',
+              program: 'pPHkq2q2OrH',
+              filter: `iFqrxSsWh6j:EQ:${state.data.details["imd-pqs_code"]}`,
+            }))
+              .then(state => {
+                const device = state.devices[state.index];
+                const entities = state.data?.trackedEntities || [];
+
+                if (entities.length === 0) {
+                  console.error(`No TEI found for PQS code: ${device.details["imd-pqs_code"]} — skipping`);
+                  return state;
+                }
+                if (entities.length > 1) {
+                  console.error(`Multiple TEIs found for PQS code: ${device.details["imd-pqs_code"]} — skipping`);
+                  return state;
+                }
+
+                state.deviceResults.push({ device, teiId: entities[0].trackedEntity });
+                console.log(`TEI found for ${device.details["imd-pqs_code"]}: ${entities[0].trackedEntity}`);
+                return state;
+              })
+          );
+      Transform-Catalogue-Data:
+        name: Transform Catalogue Data
+        adaptor: '@openfn/language-common@3.3.1'
+        credential: null
+        body: |
+          fn(state => {
+            state.transformedDevices = [];
+            return state;
+          });
+
+          each(
+            $.deviceResults,
+            fn(state => {
+              const { device, teiId } = state.data;
+              const details = device.details;
+              const status = device.status;
+              const product_sites = device.product_sites;
+              const specs = device.specifications || {};
+              const main = specs.product_specifications_main || {};
+              const fridge = specs.product_specifications_additional_refrigerator || {};
+              const freezer = specs.product_specifications_additional_freezer || {};
+              const field_group_1 = specs.field_group_1 || {};
+              const pricing = specs.price_and_shipping || {};
+              const quality = specs.quality_standard || {};
+              const verification = specs.verification || {};
+
+              const attributes = [
+                // Core identifiers
+                { attribute: "SIBMvyNBxab", value: device.id },
+                { attribute: "rxgIKww28O2", value: device.title },
+
+                // Details
+                { attribute: "iFqrxSsWh6j", value: details['imd-pqs_code'] },
+                { attribute: "juBTPqs6hyQ", value: details.product_name },
+                { attribute: "LQuLDBfPwta", value: details.appliance_type },
+                { attribute: "SeHByjACFxM", value: details.date_of_acceptance ? new Date(details.date_of_acceptance).toISOString().slice(0, 10) : null },
+                { attribute: "oc5vHLl3NMW", value: details.product_description },
+                { attribute: "Dm1zMbsU05X", value: details.manufacturer },
+                { attribute: "rbTUbG7P3YN", value: details.manufacturers_reference },
+                { attribute: "s9GdBOXqbB3", value: details.country_of_manufacture },
+                { attribute: "rbj4GPcdaWL", value: details.address },
+                { attribute: "rRZFdsU9MTV", value: details.telephone },
+                { attribute: "tmXdTXTI1sz", value: details.email },
+                { attribute: "AFzvrHbjVcP", value: details.website_address },
+                { attribute: "Jxo02DBreLK", value: details.valid_until ? new Date(details.valid_until).toISOString().slice(0, 10) : null },
+                { attribute: "niiV7PPzYvk", value: details.status },
+
+                // Status
+                { attribute: "iXCLrFaw7Sg", value: status.current },
+                { attribute: "NIJQnrXOY2v", value: status.valid_until ? new Date(status.valid_until).toISOString().slice(0, 10) : null },
+                { attribute: "WW7szLfmLck", value: status.note },
+
+                // Product sites
+                { attribute: "ZWgBZuS4qin", value: product_sites?.organization_name },
+                { attribute: "E8wIbXleNeh", value: product_sites?.address },
+
+                // Specifications: product_specifications_main
+                { attribute: "vFhJZypQr8q", value: main['climate_zone'] },
+                { attribute: "tO95R4PHrlR", value: main['minimum_rated_ambient_temperature_(°c)'] },
+                { attribute: "dxOksQqXlP4", value: main['freeze_protection'] },
+                { attribute: "cEB8ilTELYN", value: main['hold_over_time_(hours:mn)'] },
+                { attribute: "wsIVYvOCrFD", value: main['external_dimensions_length_(mm)'] },
+                { attribute: "oZz5CFFjn0c", value: main['external_dimensions_width_(mm)'] },
+                { attribute: "F8m3gyoHDlU", value: main['external_dimensions_height_(mm)'] },
+                { attribute: "lFqVeJ8TV69", value: main['appliance_tested_at_(°c)'] },
+                { attribute: "pDfYAeS8VP4", value: main['performance_at"_(°c)'] },
+                { attribute: "esuxoiQRA19", value: main['fuel_and_refrigeration_cycle'] },
+                { attribute: "u1xxerCNyuK", value: main['energy_source'] },
+                { attribute: "uvc50MPk934", value: main['lining'] },
+                { attribute: "O8ptdE5XpYr", value: main['energy_consumption_during_freezing_(kwh/24h)'] },
+                { attribute: "BwixJy32JKB", value: main['energy_consumption_cool_down_(kwh/24h)'] },
+                { attribute: "Lvd2xnA05WV", value: main['energy_consumption_continuous_power_(kwh/24h)'] },
+
+                // Specifications: product_specifications_additional_refrigerator
+                { attribute: "wBr4wccNBj1", value: fridge['refrigerant_type'] },
+                { attribute: "MBczRWvfM46", value: fridge['solar_radiation_ref_period_(kwh/m2/day)'] },
+
+                // Specifications: product_specifications_additional_freezer
+                { attribute: "vjhz1PsQSUR", value: freezer['freezer_type'] },
+                { attribute: "oOEAjPMDPvq", value: freezer['freezer_net_volume'] },
+                { attribute: "BqaEWTBG3RB", value: freezer["freezer's_gross_volume_(litres)"] },
+                { attribute: "EGt1ckoL2Z2", value: freezer['waterpack_freezing_capacity_(kg/24_hrs)'] },
+                { attribute: "opV7LjgIyVk", value: freezer['waterpack_storage_capacity_(litres)'] },
+
+                // Specifications: field_group_1
+                { attribute: "RfZORQuqk3z", value: field_group_1['comments'] },
+                { attribute: "atPosseny28", value: field_group_1['list_of_accessories'] },
+                { attribute: "fxwLC2jaE6N", value: field_group_1['list_of_spare_parts,_reference_&_price'] },
+
+                // Specifications: price_and_shipping
+                { attribute: "KDgzfJ5dzOz", value: pricing['shipping_volume_(m3)'] },
+                { attribute: "pK4B75MsEjy", value: pricing['shipping_weight_(kg)'] },
+                { attribute: "kaWRhMz1cb6", value: pricing['incoterms'] },
+                { attribute: "reIPgs6e8jJ", value: pricing['price_1'] },
+                { attribute: "lt8K6EDALuy", value: pricing['price_2'] },
+                { attribute: "J5oV9UxFVeo", value: pricing['year_of_base_price'] },
+
+                // Specifications: quality_standard
+                { attribute: "qmXEoqXvVjv", value: quality['quality_standard'] },
+                { attribute: "o9jERwG4Z12", value: quality['quality_standard_(other)'] },
+                { attribute: "qWqCTx4TIVB", value: quality['specification_reference'] },
+
+                // Specifications: verification
+                { attribute: "LU3bom2sxd9", value: verification['verification_report_reference'] },
+              ].filter(attr => attr.value !== undefined && attr.value !== null);
+
+              state.transformedDevices.push({ teiId, attributes });
+              console.log(`Transformed device: ${details['imd-pqs_code']} — ${attributes.length} attributes`);
+              return state;
+            })
+          );
+      Update-Device-Data:
+        name: Update Device Data
+        adaptor: '@openfn/language-dhis2@8.0.12'
+        credential: hunter@openfn.org-DHIS2-LMIS-Sandbox---DHIS2-Core-Team
+        body: |
+          each(
+            $.transformedDevices,
+            tracker.import(
+              'CREATE_AND_UPDATE',
+              state => ({
+                trackedEntities: [{
+                  orgUnit: 'tzOZlQkQYxv',
+                  trackedEntityType: 'uzOrtBLBGeq',
+                  trackedEntity: state.data.teiId,
+                  attributes: state.data.attributes,
+                }]
+              }),
+              { atomicMode: 'ALL' }
+            )
+              .catch((error, state) => {
+                const transformed = state.transformedDevices[state.index];
+                console.error(`Failed to update TEI ${transformed.teiId}: ${error.message}`);
+                state.errorLogs ??= [];
+                state.errorLogs.push([new Date(), transformed.teiId, error.message]);
+                return state;
+              })
+              .then(state => {
+                const device = state.transformedDevices[state.index];
+                console.log(`Successfully updated TEI: ${device.teiId}`);
+                return state;
+              })
+          );
+
+      Logging:
+        name: Logging
+        adaptor: '@openfn/language-common@3.3.1'
+        credential: null
+        body: |
+          fn(state => {
+            console.log(`Devices selected: ${state.devices?.length ?? 0}`);
+            console.log(`TEIs resolved: ${state.deviceResults?.length ?? 0}`);
+            console.log(`Devices transformed: ${state.transformedDevices?.length ?? 0}`);
+
+            if (state.deviceResults?.length === 0) {
+              console.error('No TEIs were resolved — check PQS codes exist in DHIS2');
+            }
+
+            if (state.errorLogs?.length > 0) {
+              console.error(`${state.errorLogs.length} update(s) failed:`);
+              state.errorLogs.forEach(([timestamp, teiId, message]) => {
+                console.error(`  ${timestamp} | ${teiId} | ${message}`);
+              });
+            } else {
+              console.log('All TEI updates completed successfully');
+            }
+
+            return state;
+          });
+    triggers:
+      cron:
+        type: cron
+        cron_expression: '0 0 * * *'
+        enabled: false
+    edges:
+      cron->Fetch-WHO-PQS-Catalogue:
+        source_trigger: cron
+        target_job: Fetch-WHO-PQS-Catalogue
+        condition_type: always
+        enabled: true
+      Fetch-WHO-PQS-Catalogue->Select-E003-Devices:
+        source_job: Fetch-WHO-PQS-Catalogue
+        target_job: Select-E003-Devices
+        condition_type: on_job_success
+        enabled: true
+      Select-E003-Devices->Look-Up-Existing-Device-Data-in-DHIS2:
+        source_job: Select-E003-Devices
+        target_job: Look-Up-Existing-Device-Data-in-DHIS2
+        condition_type: js_expression
+        condition_label: Devices found
+        condition_expression: |
+          !state.errors && state.devices && state.devices.length > 0
+        enabled: true
+      Look-Up-Existing-Device-Data-in-DHIS2->Transform-Catalogue-Data:
+        source_job: Look-Up-Existing-Device-Data-in-DHIS2
+        target_job: Transform-Catalogue-Data
+        condition_type: js_expression
+        condition_label: TEID exists
+        condition_expression: |
+          !state.errors && state.deviceResults && state.deviceResults.length > 0
+        enabled: true
+      Transform-Catalogue-Data->Update-Device-Data:
+        source_job: Transform-Catalogue-Data
+        target_job: Update-Device-Data
+        condition_type: js_expression
+        condition_label: TEID and Attributes Exist
+        condition_expression: |
+          !state.errors && state.transformedDevices && state.transformedDevices.length > 0
+        enabled: true
+      Update-Device-Data->Logging:
+        source_job: Update-Device-Data
+        target_job: Logging
         condition_type: on_job_success
         enabled: true
