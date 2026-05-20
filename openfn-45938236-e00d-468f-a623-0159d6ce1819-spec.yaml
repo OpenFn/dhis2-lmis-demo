@@ -3,6 +3,7 @@ description: |
   Demo project for DHIS2 LMIS and cold chain workflows
 
 collections: null
+channels: null
 credentials:
   george@dhis2.org-Fridgetag-Gmail-account-George:
     name: Fridgetag Gmail account George
@@ -443,25 +444,30 @@ workflows:
           each(
             $.devices,
             tracker.export('trackedEntities', state => ({
-              orgUnit: 'tzOZlQkQYxv',
               program: 'pPHkq2q2OrH',
-              filter: `iFqrxSsWh6j:EQ:${state.data.details["imd-pqs_code"]}`,
+              filter: `SIBMvyNBxab:EQ:${state.data.id}`,
             }))
               .then(state => {
                 const device = state.devices[state.index];
                 const entities = state.data?.trackedEntities || [];
 
                 if (entities.length === 0) {
-                  console.error(`No TEI found for PQS code: ${device.details["imd-pqs_code"]} — skipping`);
+                  console.error(`No TEI found for PQS code: ${device.id} — skipping`);
                   return state;
                 }
                 if (entities.length > 1) {
-                  console.error(`Multiple TEIs found for PQS code: ${device.details["imd-pqs_code"]} — skipping`);
+                  console.error(`Multiple TEIs found for PQS code: ${device.id} — skipping`);
                   return state;
                 }
 
-                state.deviceResults.push({ device, teiId: entities[0].trackedEntity });
-                console.log(`TEI found for ${device.details["imd-pqs_code"]}: ${entities[0].trackedEntity}`);
+                state.deviceResults.push({
+                  device,
+                  teiId: entities[0].trackedEntity,
+                  orgUnit: entities[0].orgUnit,
+                  trackedEntityType: entities[0].trackedEntityType
+                });
+
+                console.log(`TEI found for ${device.id}: ${entities[0].trackedEntity}`);
                 return state;
               })
           );
@@ -478,7 +484,7 @@ workflows:
           each(
             $.deviceResults,
             fn(state => {
-              const { device, teiId } = state.data;
+              const { device, teiId, orgUnit, trackedEntityType } = state.data;
               const details = device.details;
               const status = device.status;
               const product_sites = device.product_sites;
@@ -571,7 +577,7 @@ workflows:
                 { attribute: "LU3bom2sxd9", value: verification['verification_report_reference'] },
               ].filter(attr => attr.value !== undefined && attr.value !== null);
 
-              state.transformedDevices.push({ teiId, attributes });
+              state.transformedDevices.push({ teiId, orgUnit, trackedEntityType, attributes });
               console.log(`Transformed device: ${details['imd-pqs_code']} — ${attributes.length} attributes`);
               return state;
             })
@@ -587,8 +593,8 @@ workflows:
               'CREATE_AND_UPDATE',
               state => ({
                 trackedEntities: [{
-                  orgUnit: 'tzOZlQkQYxv',
-                  trackedEntityType: 'uzOrtBLBGeq',
+                  orgUnit: state.data.orgUnit,
+                  trackedEntityType: state.data.trackedEntityType,
                   trackedEntity: state.data.teiId,
                   attributes: state.data.attributes,
                 }]
